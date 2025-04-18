@@ -21,7 +21,8 @@ import {
   TableHeader,
   TableRow,
 } from "./ui/table";
-import { formatINR } from "@/lib/utils";
+import { exportToCSV, formatINR } from "@/lib/utils";
+import { DownloadIcon } from "lucide-react";
 
 export const PDFUploader = () => {
   const maxSize = 10 * 1024 * 1024; // 10MB default
@@ -83,7 +84,7 @@ export const PDFUploader = () => {
   };
 
   return (
-    <div className="flex flex-col gap-4 w-full max-w-6xl mx-auto">
+    <div className="flex flex-col gap-6 md:gap-8 w-full max-w-6xl mx-auto">
       <div className="space-y-4 max-w-md mx-auto w-full">
         <h1 className="text-xl md:text-2xl font-semibold">
           Transactions Extractor
@@ -172,8 +173,22 @@ export const PDFUploader = () => {
 
       {data && (
         <>
-          <div className="space-y-4">
-            <h2 className="font-semibold">Daily Balances</h2>
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="font-semibold text-lg md:text-xl">
+                Daily Balances
+              </h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  exportToCSV(data.dailyBalances, "daily-balances")
+                }
+              >
+                <DownloadIcon />
+                Download CSV
+              </Button>
+            </div>
             <div className="border rounded-md">
               <Table>
                 <TableHeader>
@@ -195,8 +210,22 @@ export const PDFUploader = () => {
               </Table>
             </div>
           </div>
-          <div className="space-y-4">
-            <h2 className="font-semibold">Special Transactions</h2>
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="font-semibold text-lg md:text-xl">
+                Special Transactions
+              </h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  exportToCSV(data.specialTransactions, "special-transactions")
+                }
+              >
+                <DownloadIcon />
+                Download CSV
+              </Button>
+            </div>
             <div className="border rounded-md">
               <Table>
                 <TableHeader>
