@@ -36,6 +36,7 @@ export const PDFUploader = () => {
       openFileDialog,
       removeFile,
       getInputProps,
+      clearFiles,
     },
   ] = useFileUpload({
     maxSize,
@@ -69,11 +70,11 @@ export const PDFUploader = () => {
         }[];
       };
     },
-    onSuccess: (data) => {
-      console.log(data);
+    onSuccess: () => {
+      clearFiles();
     },
     onError: (error) => {
-      toast.error("Something went wrong");
+      toast.error(error.message || "Something went wrong");
     },
   });
 
@@ -154,6 +155,7 @@ export const PDFUploader = () => {
                 className="text-muted-foreground/80 hover:text-foreground -me-2 size-8 hover:bg-transparent"
                 onClick={() => removeFile(files[0]?.id)}
                 aria-label="Remove file"
+                disabled={isPending}
               >
                 <XIcon className="size-4" aria-hidden="true" />
               </Button>

@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mistral } from "@ai-sdk/mistral";
-import { openai } from "@ai-sdk/openai";
 import { generateObject } from "ai";
 import { z } from "zod";
+import { Mistral } from "@mistralai/mistralai";
+
+const client = new Mistral();
 
 const schema = z.object({
   transactionDetails: z
@@ -28,21 +30,32 @@ const schema = z.object({
     ),
 });
 
-// const model = mistral("mistral-large-latest");
-const model = openai("gpt-4o-2024-05-13");
+const model = mistral("mistral-large-latest");
 
 export const POST = async (req: NextRequest) => {
-  const formdata = await req.formData();
-  const file = formdata.get("file") as File;
-  const fileBuffer = Buffer.from(await file.arrayBuffer());
+  try {
+    const formdata = await req.formData();
+    const file = formdata.get("file") as File;
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
 
-  const { object } = await generateObject({
-    model,
-    messages: [
-      {
-        role: "system",
-        content: `You are a financial data extraction assistant. Extract two sets of data:
+    const uploadedPdf = await client.files.upload({
+      file: {
+        fileName: file.name,
+        content: fileBuffer,
+      },
+      purpose: "ocr",
+    });
+    const signedUrl = await client.files.getSignedUrl({
+      fileId: uploadedPdf.id,
+    });
 
+    const { object } = await generateObject({
+      model,
+      messages: [
+        {
+          role: "system",
+          content: `You are a financial data extraction assistant. Extract two sets of data:
+        
 1. For each day in the bank statement, identify and extract only the last transaction's date and final balance. Format dates as YYYY-MM-DD. Ensure all balance numbers have 2 decimal places. Sort by date ascending.
 
 2. Extract all transactions that contain any of these keywords (case insensitive):
@@ -51,25 +64,32 @@ export const POST = async (req: NextRequest) => {
    - EMI
    - Loan EMI
    - Business Loan
-For these transactions, capture the date (YYYY-MM-DD format), full remark/description, and withdrawal amount.`
-      },
-      {
-        role: "user",
-        content: [
-          {
-            type: "file",
-            data: fileBuffer,
-            mimeType: "application/pdf",
-            filename: file.name,
-          },
-        ],
-      },
-    ],
-    schema,
-  });
+For these transactions, capture the date (YYYY-MM-DD format), full remark/description, and withdrawal amount.`,
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "file",
+              data: signedUrl.url,
+              mimeType: "application/pdf",
+            },
+          ],
+        },
+      ],
+      schema,
+    });
 
-  return NextResponse.json({
-    dailyBalances: object.transactionDetails,
-    specialTransactions: object.specialTransactions,
-  });
+    return NextResponse.json({
+      dailyBalances: object.transactionDetails,
+      specialTransactions: object.specialTransactions,
+    });
+  } catch (err) {
+    return NextResponse.json(
+      {
+        error: err || "Internal Server Error!",
+      },
+      { status: 500 }
+    );
+  }
 };
